@@ -18,11 +18,13 @@ class Position:
     def from_array(cls, array: np.ndarray):
         return Position(array[0], array[1], array[2])
 
+
 class Line:
 
     def __init__(self, pos1: Position, pos2: Position):
         self.pos1 = pos1
         self.pos2 = pos2
+
 
 class ImageSize:
 
@@ -41,12 +43,14 @@ class CameraOrientation:
 class Camera:
 
     def __init__(self, position: Position, resolution: ImageSize,
-                 orientation: CameraOrientation, ifov: float, focal_lenght: float):
+                 orientation: CameraOrientation, ifov: float, focal_lenght: float,
+                 pixel_size: float):
         self.position = position
         self.resolution = resolution
         self.orientation = orientation
         self.ifov = ifov
         self.focal_length = focal_lenght
+        self.pixel_size = pixel_size
         self.pixel_azimuths, self.pixel_elevations = self.compute_per_pixel_orientation()
 
     def compute_per_pixel_orientation(self) -> Tuple[np.ndarray, np.ndarray]:
@@ -59,10 +63,6 @@ class Camera:
         pixel_azimuths += self.orientation.azimuth - ifov_width / 2
         pixel_elevations += self.orientation.elevation - ifov_height / 2
         return pixel_azimuths, pixel_elevations
-
-    def display_empty_image(self):
-        image = np.zeros((self.resolution.height, self.resolution.width, 3))
-        self.display_image(image)
 
     def display_image(self, image: np.ndarray):
         num_ticks = 8

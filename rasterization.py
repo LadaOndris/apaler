@@ -1,9 +1,10 @@
 import math
+from typing import List, Tuple
 
 from data_types import Position
 
 
-def rasterize_line_3d(pos1: Position, pos2: Position):
+def rasterize_line_3d(pos1: Position, pos2: Position) -> List[Tuple[int, int, int]]:
     gx0idx = math.floor(pos1.x)
     gy0idx = math.floor(pos1.y)
     gz0idx = math.floor(pos1.z)
@@ -40,8 +41,9 @@ def rasterize_line_3d(pos1: Position, pos2: Position):
     derry = sy * vxvz
     derrz = sz * vxvy
 
+    points = []
     while True:
-        yield [gx, gy, gz]
+        points.append((gx, gy, gz))
         if gx == gx1idx and gy == gy1idx and gz == gz1idx:
             break
         xr = abs(errx)
@@ -58,3 +60,4 @@ def rasterize_line_3d(pos1: Position, pos2: Position):
         elif sz != 0:
             gz += sz
             errz += derrz
+    return points

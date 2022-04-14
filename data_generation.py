@@ -4,12 +4,7 @@ import cv2
 import numpy as np
 
 from data_types import Camera, CameraOrientation, ImageSize, Line, Position
-# typical FOV or IFOV
 from rasterization import rasterize_line_3d
-
-
-# Define line in 3D
-# Define camera positions in 3D, their azimuth and elevation in the image center
 
 
 def get_cameras():
@@ -18,19 +13,19 @@ def get_cameras():
     # Pixel size	3.45 µm × 3.45 µm
     # Resolution: 6480 (H) × 4860 (V)
     # Lens: Kowa LM50-IR-F
-    # Focal length: 50 mm
+    # Focal length: 50 mm?
     pixel_size = 3.45 * 1e-6
     focal_length = 10 * 1e-3
     ifov = 2 * math.atan(pixel_size / (2 * focal_length))
     cam1 = Camera(Position(2000, 0, 500),
                   ImageSize(6480, 4860),
-                  CameraOrientation(90-75.07, 1.5),
-                  ifov, focal_length)
+                  CameraOrientation(90 - 75.07, 1.5),
+                  ifov, focal_length, pixel_size)
 
     cam2 = Camera(Position(0, 1500, 500),
                   ImageSize(6480, 4860),
-                  CameraOrientation(90-65.61, 1.5),
-                  ifov, focal_length)
+                  CameraOrientation(90 - 65.61, 1.5),
+                  ifov, focal_length, pixel_size)
     print(F"Distance betwen cameras: {get_distance(cam1.position, cam2.position)}")
     return cam1, cam2
 
@@ -41,21 +36,24 @@ def get_distance(pos1: Position, pos2: Position):
                      math.pow(pos1.z - pos2.z, 2))
 
 
-def test_camera_image(cam1, cam2):
-    cam1.display_empty_image()
-    cam2.display_empty_image()
+def test_camera_image(cam):
+    image = np.zeros((cam.resolution.height, cam.resolution.width, 3))
+    cam.display_image(image)
 
 
 def project_line(cam: Camera, line: Line):
     image = np.zeros((cam.resolution.height, cam.resolution.width))
-    # translate camera position
+    # Translate camera's and  positions  into the origin
     # X and Z are width and height, Y is distance to the line
     translation = -cam.position.to_array()
     p1_trans = line.pos1.to_array() + translation
     p2_trans = line.pos2.to_array() + translation
 
+    # Angles to radians
     azim_rads = cam.orientation.azimuth / 180 * np.pi
     elev_rads = cam.orientation.elevation / 180 * np.pi
+
+    # Rotate line into the camera's view
     rotation_matrix_azim = np.array([[np.cos(azim_rads), -np.sin(azim_rads), 0],
                                      [np.sin(azim_rads), np.cos(azim_rads), 0],
                                      [0, 0, 1]])
@@ -66,16 +64,18 @@ def project_line(cam: Camera, line: Line):
     p1 = np.dot(rotation_matrix, p1_trans)
     p2 = np.dot(rotation_matrix, p2_trans)
 
-    # rasterize line from p1 to p2
-    points = list(rasterize_line_3d(Position.from_array(p1),
-                                    Position.from_array(p2)))
+    # Rasterize line from p1 to p2
+    points = rasterize_line_3d(Position.from_array(p1),
+                               Position.from_array(p2))
 
-    pixel_size = (3.45 * 1e-6)
     # for each point, calc projection (u, v)
     for point in points:
+        # Project point onto projection plane.
+        # Assumes that Y axis is the principle axis,
+        # which is perpendicular to the projection plane.
         d_z = cam.focal_length / point[1]
-        u = int(point[0] * d_z / pixel_size)
-        v = int(point[2] * d_z / pixel_size)
+        u = int(point[0] * d_z / cam.pixel_size)
+        v = int(point[2] * d_z / cam.pixel_size)
         # (0, 0) is the center of the image
         # so move projected pixels onto a plane beginning with indices at 0
         u += int(cam.resolution.width / 2)
@@ -83,11 +83,9 @@ def project_line(cam: Camera, line: Line):
         # inverse vertical axis (0 at the bottom)
         v = cam.resolution.height - v
         if 0 < u < cam.resolution.width and 0 < v < cam.resolution.height:
-            last_point = point
-            last_uv = [u, v]
             image[v, u] = 255
-        else:
-            print(u, v, point)
+        # else:
+        #     print(u, v, point)
     return image
 
 
@@ -103,7 +101,7 @@ def project_and_display(cam: Camera, line: Line):
 
 if __name__ == "__main__":
     cam1, cam2 = get_cameras()
-    # test_camera_image(cam1, cam2)
+    # test_camera_image(cam1)
     # line = Line(Position(2500, 6600, 500), Position(1000, 9000, 10000))
     # line = Line(Position(2400, 4600, 500), Position(1000, 7000, 10000))
     # line = Line(Position(4000, 11000, 500), Position(4000, 7000, 10000))
