@@ -20,16 +20,16 @@ def get_cameras():
     # Lens: Kowa LM50-IR-F
     # Focal length: 50 mm
     pixel_size = 3.45 * 1e-6
-    focal_length = 28 * 1e-3
+    focal_length = 10 * 1e-3
     ifov = 2 * math.atan(pixel_size / (2 * focal_length))
-    cam1 = Camera(Position(1000, 0, 500),
+    cam1 = Camera(Position(2000, 0, 500),
                   ImageSize(6480, 4860),
-                  CameraOrientation(24, 0),
+                  CameraOrientation(90-75.07, 1.5),
                   ifov, focal_length)
 
     cam2 = Camera(Position(0, 1500, 500),
                   ImageSize(6480, 4860),
-                  CameraOrientation(21, 8),
+                  CameraOrientation(90-65.61, 1.5),
                   ifov, focal_length)
     print(F"Distance betwen cameras: {get_distance(cam1.position, cam2.position)}")
     return cam1, cam2
@@ -55,13 +55,13 @@ def project_line(cam: Camera, line: Line):
     p2_trans = line.pos2.to_array() + translation
 
     azim_rads = cam.orientation.azimuth / 180 * np.pi
-    elev_rads = -cam.orientation.elevation / 180 * np.pi
+    elev_rads = cam.orientation.elevation / 180 * np.pi
     rotation_matrix_azim = np.array([[np.cos(azim_rads), -np.sin(azim_rads), 0],
                                      [np.sin(azim_rads), np.cos(azim_rads), 0],
                                      [0, 0, 1]])
-    rotation_matrix_elev = np.array([[np.cos(elev_rads), 0, -np.sin(elev_rads)],
-                                     [0, 1, 0],
-                                     [np.sin(elev_rads), 0, np.cos(elev_rads)]])
+    rotation_matrix_elev = np.array([[1, 0, 0],
+                                     [0, np.cos(elev_rads), np.sin(elev_rads)],
+                                     [0, -np.sin(elev_rads), np.cos(elev_rads)]])
     rotation_matrix = np.dot(rotation_matrix_azim, rotation_matrix_elev)
     p1 = np.dot(rotation_matrix, p1_trans)
     p2 = np.dot(rotation_matrix, p2_trans)
@@ -104,6 +104,9 @@ def project_and_display(cam: Camera, line: Line):
 if __name__ == "__main__":
     cam1, cam2 = get_cameras()
     # test_camera_image(cam1, cam2)
-    line = Line(Position(2500, 6000, 500), Position(2400, 6050, 5000))
+    # line = Line(Position(2500, 6600, 500), Position(1000, 9000, 10000))
+    # line = Line(Position(2400, 4600, 500), Position(1000, 7000, 10000))
+    # line = Line(Position(4000, 11000, 500), Position(4000, 7000, 10000))
+    line = Line(Position(2000, 3000, 500), Position(1000, 4000, 10000))
     project_and_display(cam1, line)
     project_and_display(cam2, line)

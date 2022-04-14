@@ -78,5 +78,7 @@ class Camera:
         ax.imshow(image)
         ax.set_xticklabels(formatted_xticks)
         ax.set_yticklabels(formatted_yticks)
+        ax.set_xlabel('Azimuth')
+        ax.set_ylabel('Elevation')
         fig.tight_layout()
         fig.show()
