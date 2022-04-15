@@ -25,6 +25,8 @@ class Line:
         self.pos1 = pos1
         self.pos2 = pos2
 
+    def as_vector(self) -> np.ndarray:
+        return self.pos2.to_array() - self.pos1.to_array()
 
 class ImageSize:
 
@@ -82,3 +84,24 @@ class Camera:
         ax.set_ylabel('Elevation')
         fig.tight_layout()
         fig.show()
+
+
+class CandidatePlane:
+    """
+    CandidateLine is a representation of a 2D line in the image.
+    It contains information about the azimuth, elevation and the cameras position.
+    Together they form a plane.
+    """
+    def __init__(self, line1: Line, line2: Line):
+        self.line1 = line1
+        self.line2 = line2
+        self.normal = np.cross(line1.as_vector(), line2.as_vector())
+
+    def get_coeffs(self):
+        c = np.dot(self.normal, self.line1.pos1.to_array())
+        coeffs = np.concat([self.normal, [c]], axis=-1)
+        return coeffs
+
+    def get_normal(self):
+        return self.normal
+
