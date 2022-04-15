@@ -1,17 +1,13 @@
 from typing import List
 
+import cv2
 import numpy as np
 
-from data_types import Camera, CandidatePlane, Line, Position
+from data_generation import get_cameras
+from data_types import CandidatePlane, ImageCameraPair, Line, Position
 from detection.base import LineDetector
+from detection.hough import HoughLineDetector
 from geometry import line_plane_intersection, plane_intersect
-
-
-class ImageCameraPair:
-
-    def __init__(self, image, camera: Camera):
-        self.image = image
-        self.camera = camera
 
 
 class LaserSourceDeterminator:
@@ -28,25 +24,27 @@ class LaserSourceDeterminator:
         matches = self.find_matches(candidates_per_image)
         for match in matches:
             position = self.project_onto_surface(match)
-            print(position)
             return position
 
-    def find_matches(self, candidates: List[List[CandidatePlane]]) -> List[Line]:
+    def find_matches(self, candidate_planes: List[List[CandidatePlane]]) -> List[Line]:
         """
         Iterates over all permutations of candidates and find the best
         match.
         """
-        candidates_size = [len(camera_candidates) for camera_candidates in candidates]
+        candidates_size = [len(camera_candidates) for camera_candidates in candidate_planes]
         candidates_indices_axes = np.indices(candidates_size)
-        candidates_indices = np.stack(candidates_indices_axes, axis=-1)
+        candidates_indices = np.concatenate(candidates_indices_axes, axis=-1)
 
         matches: List[Line] = []
         for permutation_indices in candidates_indices:
+            # Retrieve a single permutation of candidates
             candidates = []
-            for camera_index, index in enumerate(permutation_indices):
-                camera_candidates = candidates[camera_index]
-                candidate = camera_candidates[index]
+            for camera_index, index_within_camera in enumerate(permutation_indices):
+                # index_within_camera = index[camera_index]
+                camera_candidates = candidate_planes[camera_index]
+                candidate = camera_candidates[index_within_camera]
                 candidates.append(candidate)
+            # Try to find match using this permutation
             match = self.find_match(candidates)
             matches.append(match)
 
@@ -82,3 +80,23 @@ class LaserSourceDeterminator:
 
         position = Position.from_array(point)
         return position
+
+
+def load_images():
+    kernel = np.ones((15, 15), np.uint8)
+
+    image1 = cv2.imread('./data/line_0_0.png')
+    image1 = cv2.erode(image1, kernel)
+
+    image2 = cv2.imread('./data/line_0_1.png')
+    image2 = cv2.erode(image2, kernel)
+    return image1, image2
+
+
+if __name__ == "__main__":
+    cam1, cam2 = get_cameras()
+    img1, img2 = load_images()
+    pairs = [ImageCameraPair(img1, cam1), ImageCameraPair(img2, cam2)]
+    determinator = LaserSourceDeterminator(HoughLineDetector())
+    position = determinator.find_position(pairs)
+    print("Laser source: ", position)

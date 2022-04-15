@@ -16,17 +16,16 @@ def get_cameras():
     # Focal length: 50 mm?
     pixel_size = 3.45 * 1e-6
     focal_length = 10 * 1e-3
-    ifov = 2 * math.atan(pixel_size / (2 * focal_length))
     cam1 = Camera(Position(2000, 0, 500),
                   ImageSize(6480, 4860),
                   CameraOrientation(90 - 75.07, 1.5),
-                  ifov, focal_length, pixel_size)
+                  focal_length, pixel_size)
 
     cam2 = Camera(Position(0, 1500, 500),
                   ImageSize(6480, 4860),
                   CameraOrientation(90 - 65.61, 1.5),
-                  ifov, focal_length, pixel_size)
-    print(F"Distance betwen cameras: {get_distance(cam1.position, cam2.position)}")
+                  focal_length, pixel_size)
+    # print(F"Distance betwen cameras: {get_distance(cam1.position, cam2.position)}")
     return cam1, cam2
 
 
@@ -53,10 +52,12 @@ def project_line(cam: Camera, line: Line):
     azim_rads = cam.orientation.azimuth / 180 * np.pi
     elev_rads = cam.orientation.elevation / 180 * np.pi
 
-    # Rotate line into the camera's view
+    # Rotate line into the camera's view (Y axis)
+    # counterclockwise
     rotation_matrix_azim = np.array([[np.cos(azim_rads), -np.sin(azim_rads), 0],
                                      [np.sin(azim_rads), np.cos(azim_rads), 0],
                                      [0, 0, 1]])
+    # clockwise
     rotation_matrix_elev = np.array([[1, 0, 0],
                                      [0, np.cos(elev_rads), np.sin(elev_rads)],
                                      [0, -np.sin(elev_rads), np.cos(elev_rads)]])
@@ -109,5 +110,6 @@ if __name__ == "__main__":
     # line = Line(Position(2400, 4600, 500), Position(1000, 7000, 10000))
     # line = Line(Position(4000, 11000, 500), Position(4000, 7000, 10000))
     line = Line(Position(2000, 3000, 500), Position(1000, 4000, 10000))
+    # line = Line(Position(3000, 1000, 500), Position(1000, 1000, 500))
     project_and_display(cam1, line, show=True, save='./data/line_0_0.png')
     project_and_display(cam2, line, show=True, save='./data/line_0_1.png')
