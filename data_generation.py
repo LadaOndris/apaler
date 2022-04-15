@@ -89,14 +89,17 @@ def project_line(cam: Camera, line: Line):
     return image
 
 
-def project_and_display(cam: Camera, line: Line):
+def project_and_display(cam: Camera, line: Line, show: bool, save: str = None):
     mask = project_line(cam, line)
     kernel = np.ones((15, 15), np.uint8)
     mask = cv2.dilate(mask, kernel)
 
     image = np.full((cam.resolution.height, cam.resolution.width, 3), fill_value=0)
     image[mask > 0] = [0, 255, 0]
-    cam.display_image(image)
+    if show:
+        cam.display_image(image)
+    if save:
+        cv2.imwrite(save, image)
 
 
 if __name__ == "__main__":
@@ -106,5 +109,5 @@ if __name__ == "__main__":
     # line = Line(Position(2400, 4600, 500), Position(1000, 7000, 10000))
     # line = Line(Position(4000, 11000, 500), Position(4000, 7000, 10000))
     line = Line(Position(2000, 3000, 500), Position(1000, 4000, 10000))
-    project_and_display(cam1, line)
-    project_and_display(cam2, line)
+    project_and_display(cam1, line, show=True, save='./data/line_0_0.png')
+    project_and_display(cam2, line, show=True, save='./data/line_0_1.png')
