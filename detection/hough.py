@@ -3,7 +3,7 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 
-from data_generation import get_cameras
+from data_generation import get_cameras, get_transformation_matrix
 from data_types import Camera, CandidatePlane, ImageCameraPair, Line, Position
 from detection.base import LineDetector
 
@@ -18,31 +18,34 @@ class HoughLineDetector(LineDetector):
         #
         image = imageCameraPair.image
         # cv2.namedWindow('edges', cv2.WINDOW_NORMAL)
-        cv2.namedWindow('lines', cv2.WINDOW_NORMAL)
+        # cv2.namedWindow('lines', cv2.WINDOW_NORMAL)
 
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         edges = cv2.Canny(gray, 50, 150, apertureSize=7)
         # cv2.imshow('edges', edges)
 
         candidate_planes = []
-        lines = cv2.HoughLines(edges, 1, np.pi / 180, 200)
+        lines = cv2.HoughLines(edges, 1, np.pi / (16 * 180), 100)
         for rho, theta in lines[0]:
-            end_points = line_end_points_on_image(rho, theta, imageCameraPair.camera.resolution.to_tuple())
-            # a = np.cos(theta)
-            # b = np.sin(theta)
-            # x0 = a * rho
-            # y0 = b * rho
-            # x1 = int(x0 + 1000 * (-b))
-            # y1 = int(y0 + 1000 * (a))
-            # x2 = int(x0 - 1000 * (-b))
-            # y2 = int(y0 - 1000 * (a))
-            (x1, y1), (x2, y2) = end_points
+            x0 = np.cos(theta) * rho
+            y0 = np.sin(theta) * rho
+
+            if np.isclose(y0, 0.0):
+                # Handle the case with a vertical line:
+                x1, y1 = int(x0), 0
+                x2, y2 = int(x0), imageCameraPair.camera.resolution.height - 1
+                end_points = [(x1, y1), (x2, y2)]
+            else:
+                # The following function doesn't work for vertical lines
+                end_points = line_end_points_on_image(rho, theta, imageCameraPair.camera.resolution.to_tuple())
+                (x1, y1), (x2, y2) = end_points
+
             cv2.line(image, (x1, y1), (x2, y2), (0, 0, 255), 2)
             plane = self.get_plane_from_image_points(imageCameraPair.camera, end_points[0], end_points[1])
             candidate_planes.append(plane)
 
-        cv2.imshow('lines', image)
-        cv2.waitKey(0)
+        # cv2.imshow('lines', image)
+        # cv2.waitKey(0)
         return candidate_planes
 
     def get_plane_from_image_points(self, camera: Camera,
@@ -69,29 +72,28 @@ class HoughLineDetector(LineDetector):
         # If the cameras was looking at the position with azimuth of 0
         # and elevation 0, then it is looking exactly along the Y axis.
         # The azimuth is measured from the Y axis.
-        # direction = base_position.to_array() + np.array([0, 1, 0])
-        direction = np.array([0, 1, 0])
+        direction = np.array([0, 1, 0, 1])
 
         # Angles to radians
         azim_rads = azimuth / 180 * np.pi
         elev_rads = elevation / 180 * np.pi
 
-        rotation_matrix_azim = np.array([[np.cos(azim_rads), np.sin(azim_rads), 0],
-                                         [-np.sin(azim_rads), np.cos(azim_rads), 0],
-                                         [0, 0, 1]])
-        rotation_matrix_elev = np.array([[1, 0, 0],
-                                         [0, np.cos(elev_rads), -np.sin(elev_rads)],
-                                         [0, np.sin(elev_rads), np.cos(elev_rads)]])
-        rotation_matrix = np.dot(rotation_matrix_elev, rotation_matrix_azim)
-        oriented_direction = np.dot(rotation_matrix, direction)
+        translation = base_position.to_array()
+        transformation_matrix = get_transformation_matrix(-translation, azim_rads, elev_rads)
+        inverse_transformation_matrix = np.linalg.inv(transformation_matrix)
 
-        line = Line(base_position, Position.from_array(base_position.to_array() + oriented_direction))
+        oriented_direction = np.dot(inverse_transformation_matrix, direction)
+
+        line = Line(base_position, Position.from_array(oriented_direction))
         return line
+
 
 """
 The following functions originate from 
 https://arccoder.medium.com/process-the-output-of-cv2-houghlines-f43c7546deae
 """
+
+
 def line_end_points_on_image(rho: float, theta: float, image_shape: tuple):
     """
     Returns end points of the line on the end of the image

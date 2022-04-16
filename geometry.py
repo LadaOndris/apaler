@@ -1,3 +1,4 @@
+import math
 from typing import Tuple
 
 import numpy as np
@@ -37,3 +38,9 @@ def line_plane_intersection(planeNormal, planePoint, rayDirection, rayPoint, eps
     si = -planeNormal.dot(w) / ndotu
     Psi = w + si * rayDirection + planePoint
     return Psi
+
+
+def get_distance(pos1: np.ndarray, pos2: np.ndarray):
+    return math.sqrt(math.pow(pos1[0] - pos2[0], 2) +
+                     math.pow(pos1[1] - pos2[1], 2) +
+                     math.pow(pos1[2] - pos2[2], 2))

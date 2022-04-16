@@ -1,5 +1,6 @@
 import math
 from typing import Tuple
+from geometry import get_distance
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -63,23 +64,55 @@ class Camera:
         self.orientation = orientation
         self.focal_length = focal_length
         self.pixel_size = pixel_size
-        # self.ifov_azim = 2 * math.atan(pixel_size * resolution.width / (2 * focal_length)) / np.pi * 180 / resolution.width
-        # self.ifov_elev = 2 * math.atan(pixel_size * resolution.height / (2 * focal_length)) / np.pi * 180 / resolution.height
-        self.ifov_azim = 2 * math.atan(
-            pixel_size / (2 * focal_length)) / np.pi * 180
-        self.ifov_elev = 2 * math.atan(
-            pixel_size / (2 * focal_length)) / np.pi * 180
+
+        self.fov_azim = 2 * math.atan(pixel_size * resolution.width / (2 * focal_length)) / np.pi * 180
+        self.fov_elev = 2 * math.atan(pixel_size * resolution.height / (2 * focal_length)) / np.pi * 180
+
         self.pixel_azimuths, self.pixel_elevations = self.compute_per_pixel_orientation()
 
-    def compute_per_pixel_orientation(self) -> Tuple[np.ndarray, np.ndarray]:
-        ifov_width = self.resolution.width * self.ifov_azim
-        ifov_height = self.resolution.height * self.ifov_elev
-        pixel_azimuths = np.arange(0, ifov_width, self.ifov_azim)
-        pixel_elevations = np.arange(0, ifov_height, self.ifov_elev)
-        pixel_elevations = np.flip(pixel_elevations)
+    def half_ifovs(self, num_pixels: int):
+        # Cumulative sum of pixel sizes
+        pixel_sizes = np.full(shape=[num_pixels], fill_value=self.pixel_size)
+        cum_pixel_sizes = np.cumsum(pixel_sizes)
+        # Compute angles for cumulative sum of pixel sizes
+        cum_ifov = np.arctan(cum_pixel_sizes / self.focal_length)
+        # Undo cumsum
+        ifov_difs_rads = cum_ifov[1:] - cum_ifov[:-1].copy()
+        # Prepend the first element that was forgotten in the previous step
+        ifov_rads = np.concatenate([[cum_ifov[0]], ifov_difs_rads], axis=-1)
+        # Convert to degrees
+        ifov_degs = ifov_rads / np.pi * 180
+        return ifov_degs
 
-        pixel_azimuths += self.orientation.azimuth - ifov_width / 2
-        pixel_elevations += self.orientation.elevation - ifov_height / 2
+    def compute_per_pixel_orientation(self) -> Tuple[np.ndarray, np.ndarray]:
+        # ifov_width = self.resolution.width * self.ifov_azim
+        # ifov_height = self.resolution.height * self.ifov_elev
+        # pixel_azimuths = np.arange(0, ifov_width, self.ifov_azim) + self.ifov_azim
+        # pixel_elevations = np.arange(0, ifov_height, self.ifov_elev) + self.ifov_elev
+        # pixel_elevations = np.flip(pixel_elevations)
+
+        half_ifovs_azim = self.half_ifovs(int(self.resolution.width / 2))
+        half_ifovs_elev = self.half_ifovs(int(self.resolution.height / 2))
+
+        half_ifovs_azim_cum = np.cumsum(half_ifovs_azim)
+        half_ifovs_elev_cum = np.cumsum(half_ifovs_elev)
+
+        # Flip the array symmetrically
+        reversed_half_ifovs_azim = np.flipud(half_ifovs_azim_cum)
+        reversed_half_ifovs_elev = np.flipud(half_ifovs_elev_cum)
+
+        # There is no 0 in the cetre of the image -> add it manually
+        # by removing the first element and later adding 0.
+        reversed_half_ifovs_azim_corrected = reversed_half_ifovs_azim[1:]
+        reversed_half_ifovs_elev_corrected = reversed_half_ifovs_elev[1:]
+
+        # Concatenate symmetrically and add the 0.
+        ifovs_azim = np.concatenate([-reversed_half_ifovs_azim_corrected, [0], half_ifovs_azim_cum])
+        ifovs_elev = np.concatenate([-reversed_half_ifovs_elev_corrected, [0], half_ifovs_elev_cum])
+        ifovs_elev_flipped = np.flip(ifovs_elev)
+
+        pixel_azimuths = ifovs_azim + self.orientation.azimuth
+        pixel_elevations = ifovs_elev_flipped + self.orientation.elevation
         return pixel_azimuths, pixel_elevations
 
     def display_image(self, image: np.ndarray):
