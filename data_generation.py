@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from data_types import Camera, CameraOrientation, ImageSize, Line, Position
-from geometry import degs_to_rads, is_point_within_image
+from geometry import is_point_within_image, rot_along_x_matrix, rot_along_z_matrix, translation_matrix
 from rasterization import rasterize_line_3d
 
 
@@ -15,7 +15,7 @@ def get_cameras():
     # Focal length: 50 mm?
     pixel_size = 3.45 * 1e-6
     focal_length = 20 * 1e-3
-    elevation = 30
+    elevation = -10
     cam1 = Camera(Position(2000, 0, 500),
                   ImageSize(6480, 4860),
                   CameraOrientation(90 - 75.07, elevation),
@@ -52,33 +52,31 @@ def get_cameras():
 #     return cam1, cam2
 
 
-def test_camera_image(cam):
-    image = np.zeros((cam.resolution.height, cam.resolution.width, 3))
-    cam.display_image(image)
-
-
-def transform_camera_to_world(translation_vec: np.ndarray, azim_degs: float, elev_degs: float):
-    azim_rads = degs_to_rads(azim_degs)
-    elev_rads = degs_to_rads(elev_degs)
-
-    translation_matrix = np.array([[1, 0, 0, translation_vec[0]],
-                                   [0, 1, 0, translation_vec[1]],
-                                   [0, 0, 1, translation_vec[2]],
-                                   [0, 0, 0, 1]])
+def transform_camera_to_world_matrix(translation_vec: np.ndarray, azim_degs: float, elev_degs: float):
+    trans_matrix = translation_matrix(translation_vec)
 
     # Rotate line the camera's principal axis into the world coordinates
-    rotation_matrix_azim = np.array([[np.cos(azim_rads), np.sin(azim_rads), 0, 0],
-                                     [-np.sin(azim_rads), np.cos(azim_rads), 0, 0],
-                                     [0, 0, 1, 0],
-                                     [0, 0, 0, 1]])
-    rotation_matrix_elev = np.array([[1, 0, 0, 0],
-                                     [0, np.cos(elev_rads), -np.sin(elev_rads), 0],
-                                     [0, np.sin(elev_rads), np.cos(elev_rads), 0],
-                                     [0, 0, 0, 1]])
+    rotation_matrix_azim = rot_along_z_matrix(azim_degs)
+    rotation_matrix_elev = rot_along_x_matrix(elev_degs)
 
     # The order of matrix multiplication matters!
-    transformation_matrix = translation_matrix @ rotation_matrix_azim @ rotation_matrix_elev
+    transformation_matrix = trans_matrix @ rotation_matrix_azim @ rotation_matrix_elev
     return transformation_matrix
+
+
+def transform_world_to_camera(point1, point2, cam: Camera):
+    camera_to_world = transform_camera_to_world_matrix(cam.position.to_array(),
+                                                       cam.orientation.azimuth,
+                                                       cam.orientation.elevation)
+    world_to_camera = np.linalg.inv(camera_to_world)
+
+    p1_orig = np.concatenate([point1, [1]], axis=-1)
+    p2_orig = np.concatenate([point2, [1]], axis=-1)
+
+    p1_transformed = np.dot(world_to_camera, p1_orig)
+    p2_transformed = np.dot(world_to_camera, p2_orig)
+
+    return p1_transformed, p2_transformed
 
 
 def project_point(point, cam: Camera):
@@ -99,16 +97,7 @@ def project_point(point, cam: Camera):
 def project_line(cam: Camera, line: Line):
     image = np.zeros((cam.resolution.height, cam.resolution.width))
 
-    camera_to_world = transform_camera_to_world(cam.position.to_array(),
-                                                cam.orientation.azimuth,
-                                                cam.orientation.elevation)
-    world_to_camera = np.linalg.inv(camera_to_world)
-
-    p1_orig = np.concatenate([line.pos1.to_array(), [1]], axis=-1)
-    p2_orig = np.concatenate([line.pos2.to_array(), [1]], axis=-1)
-
-    p1 = np.dot(world_to_camera, p1_orig)
-    p2 = np.dot(world_to_camera, p2_orig)
+    p1, p2 = transform_world_to_camera(line.pos1.to_array(), line.pos2.to_array(), cam)
 
     # Rasterize line from p1 to p2
     points = rasterize_line_3d(Position.from_array(p1),
@@ -121,8 +110,6 @@ def project_line(cam: Camera, line: Line):
         # Check image boundaries
         if is_point_within_image(u, v, cam.resolution.to_tuple()):
             image[v, u] = 255
-        # else:
-        #     print(u, v, point)
     return image
 
 
@@ -141,7 +128,6 @@ def project_and_display(cam: Camera, line: Line, show: bool, save: str = None):
 
 if __name__ == "__main__":
     cam1, cam2 = get_cameras()
-    # test_camera_image(cam1)
     line = Line(Position(2800, 6600, 500), Position(-1000, 9000, 10000))  # Line at an angle
     # line = Line(Position(2800, 6600, 500), Position(2800, 6600, 10000))  # Vertical line
     # line = Line(Position(1600, 3200, 500), Position(1600, 3200, 10000))  # Vertical line a bit closer

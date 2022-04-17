@@ -1,6 +1,5 @@
 import math
 from typing import Tuple
-from geometry import get_distance
 
 import matplotlib.pyplot as plt
 import numpy as np

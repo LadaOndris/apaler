@@ -46,33 +46,28 @@ def get_distance(pos1: np.ndarray, pos2: np.ndarray):
                      math.pow(pos1[2] - pos2[2], 2))
 
 
-def degs_to_rads(degs: float) -> float:
+def degs_to_rads(degs):
     return degs / 180 * np.pi
 
 
-def rads_to_degs(rads: float) -> float:
+def rads_to_degs(rads):
     return rads / np.pi * 180
 
 
-def rot_along_z(vec, degs):
-    return np.dot(rot_along_z_matrix(degs), vec)
-
-
-def rot_along_z_matrix(degs):
-    rads = degs / 180 * np.pi
-    mat = np.array([[np.cos(rads), np.sin(rads), 0, 0],
-                    [-np.sin(rads), np.cos(rads), 0, 0],
-                    [0, 0, 1, 0],
-                    [0, 0, 0, 1]])
-    return mat
-
-
-def rot_along_x(vec, degs):
+def rot_along_x(vec: np.ndarray, degs: float) -> np.ndarray:
     return np.dot(rot_along_x_matrix(degs), vec)
 
 
-def rot_along_x_matrix(degs):
-    rads = degs / 180 * np.pi
+def rot_along_y(vec: np.ndarray, degs: float) -> np.ndarray:
+    return np.dot(rot_along_y_matrix(degs), vec)
+
+
+def rot_along_z(vec: np.ndarray, degs: float) -> np.ndarray:
+    return np.dot(rot_along_z_matrix(degs), vec)
+
+
+def rot_along_x_matrix(degs: float) -> np.ndarray:
+    rads = degs_to_rads(degs)
     mat = np.array([[1, 0, 0, 0],
                     [0, np.cos(rads), -np.sin(rads), 0],
                     [0, np.sin(rads), np.cos(rads), 0],
@@ -80,12 +75,8 @@ def rot_along_x_matrix(degs):
     return mat
 
 
-def rot_along_y(vec, degs):
-    return np.dot(rot_along_y_matrix(degs), vec)
-
-
-def rot_along_y_matrix(degs):
-    rads = degs / 180 * np.pi
+def rot_along_y_matrix(degs: float) -> np.ndarray:
+    rads = degs_to_rads(degs)
     mat = np.array([[np.cos(rads), 0, -np.sin(rads), 0],
                     [0, 1, 0, 0],
                     [np.sin(rads), 0, np.cos(rads), 0],
@@ -93,15 +84,28 @@ def rot_along_y_matrix(degs):
     return mat
 
 
-"""
-The following functions originate from 
-https://arccoder.medium.com/process-the-output-of-cv2-houghlines-f43c7546deae
-"""
+def rot_along_z_matrix(degs: float) -> np.ndarray:
+    rads = degs_to_rads(degs)
+    mat = np.array([[np.cos(rads), np.sin(rads), 0, 0],
+                    [-np.sin(rads), np.cos(rads), 0, 0],
+                    [0, 0, 1, 0],
+                    [0, 0, 0, 1]])
+    return mat
+
+
+def translation_matrix(translation_vec: np.ndarray) -> np.ndarray:
+    return np.array([[1, 0, 0, translation_vec[0]],
+                     [0, 1, 0, translation_vec[1]],
+                     [0, 0, 1, translation_vec[2]],
+                     [0, 0, 0, 1]])
 
 
 def line_end_points_on_image(rho: float, theta: float, image_shape: tuple):
     """
     Returns end points of the line on the end of the image
+
+    The function originates from https://arccoder.medium.com/process-the-output-of-cv2-houghlines-f43c7546deae.
+
     Args:
         rho: input line rho
         theta: input line theta
@@ -200,30 +204,3 @@ def solve4y(x: float, m: float, b: float):
         return b
 
     return m * x + b
-
-
-def rotation_matrix_to_align_vectors(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    a_norm = a / np.linalg.norm(a)
-    b_norm = b / np.linalg.norm(b)
-
-    v = np.cross(a_norm, b_norm)
-    c = np.dot(a_norm, b_norm)
-    v_mat = ssc(v)
-
-    rotation_matrix = np.eye(3, dtype=np.float64) + v_mat + v_mat.dot(v_mat) / (1 + c)
-    return rotation_matrix
-
-
-def ssc(vector: np.ndarray):
-    v1, v2, v3 = vector
-    v_mat = np.array([[0, -v3, v2],
-                     [v3, 0, -v1],
-                     [-v2, v1, 0]])
-    return v_mat
-
-
-if __name__ == "__main__":
-    A = np.array([100, 214.15, 100])
-    B = np.array([0, 214.15, 0])
-    R = rotation_matrix_to_align_vectors(B, A)
-    pass
