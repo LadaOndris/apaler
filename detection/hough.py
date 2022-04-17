@@ -2,10 +2,12 @@ from typing import List, Tuple
 
 import cv2
 import numpy as np
+import quaternion
 
-from data_generation import get_cameras, get_transformation_matrix
+from data_generation import get_cameras, transform_camera_to_world, project_point
 from data_types import Camera, CandidatePlane, ImageCameraPair, Line, Position
 from detection.base import LineDetector
+from geometry import line_end_points_on_image, rot_along_x, rot_along_x_matrix, rot_along_z, rot_along_z_matrix
 
 
 class HoughLineDetector(LineDetector):
@@ -54,6 +56,8 @@ class HoughLineDetector(LineDetector):
         line2 = self.line_from_camera_to_pixel(camera, point2)
 
         plane = CandidatePlane(line1, line2)
+        coeffs = plane.get_coeffs()
+        print(F"{coeffs[0]}x+({coeffs[1]})y+({coeffs[2]})z+({coeffs[3]})=0")
         return plane
 
     def line_from_camera_to_pixel(self, camera: Camera, pixel: Tuple[int, int]) -> Line:
@@ -64,135 +68,48 @@ class HoughLineDetector(LineDetector):
         # Get azimuth and elevation of the pixel
         azim = camera.pixel_azimuths[pixel[0]]
         elev = camera.pixel_elevations[pixel[1]]
+        print(F"Azim: {azim:.1f}, Elev: {elev:.1f}")
         # Construct line from the camera in the direction of the pixel
-        line = self.line_in_the_direction(camera.position, azim, elev)
+        line = self.line_in_the_direction(camera, azim, elev, pixel)
         return line
 
-    def line_in_the_direction(self, base_position: Position, azimuth: float, elevation: float) -> Line:
-        # If the cameras was looking at the position with azimuth of 0
-        # and elevation 0, then it is looking exactly along the Y axis.
-        # The azimuth is measured from the Y axis.
-        direction = np.array([0, 1, 0, 1])
+    def rotate_inside_camera_system(self, vec, azim_degs, elev_degs):
+        direction_in_cameras_coords = vec
+        direction_in_cameras_coords = rot_along_x(direction_in_cameras_coords, degs=elev_degs)
+        direction_in_cameras_coords = rot_along_z(direction_in_cameras_coords, degs=azim_degs)
+        return direction_in_cameras_coords
 
-        # Angles to radians
-        azim_rads = azimuth / 180 * np.pi
-        elev_rads = elevation / 180 * np.pi
+    def line_in_the_direction(self, camera: Camera, azimuth: float, elevation: float,
+                              pixel: Tuple[int, int]) -> Line:
+        base_position = camera.position
+        camera_azimuth = azimuth - camera.orientation.azimuth
+        camera_elevation = elevation - camera.orientation.elevation
 
-        translation = base_position.to_array()
-        transformation_matrix = get_transformation_matrix(-translation, azim_rads, elev_rads)
-        inverse_transformation_matrix = np.linalg.inv(transformation_matrix)
+        # The camera is looking in the direction of its own "Y" axis
+        camera_direction = np.array([0, 1, 0, 1])
 
-        oriented_direction = np.dot(inverse_transformation_matrix, direction)
+        # Firstly, rotate inside the camera's coordinate system
+        # direction_in_cameras_coords = self.rotate_inside_camera_system(camera_direction,
+        #                                                                camera_azimuth,
+        #                                                                camera_elevation)
+        x = (pixel[0] - camera.resolution.width / 2) * camera.pixel_size
+        z = ((camera.resolution.height - pixel[1]) - camera.resolution.height / 2) * camera.pixel_size
+        direction_in_cameras_coords = np.array([x, camera.focal_length, z])
+        direction_in_cameras_coords = direction_in_cameras_coords / np.linalg.norm(direction_in_cameras_coords)
+        direction_in_cameras_coords = np.concatenate([direction_in_cameras_coords, [1]])
+
+        # Secondly, transform the vector from Camera to World
+        camera_to_world = transform_camera_to_world(base_position.to_array(),
+                                                    camera.orientation.azimuth,
+                                                    camera.orientation.elevation)
+
+        oriented_direction = np.dot(camera_to_world, direction_in_cameras_coords)
 
         line = Line(base_position, Position.from_array(oriented_direction))
+        direction = oriented_direction[:3] - base_position.to_array()
+        print(F"Vector(({base_position.x},{base_position.y},{base_position.z}), "
+              F"({base_position.x}+10000*{direction[0]},{base_position.y}+10000*{direction[1]},{base_position.z}+10000*{direction[2]}))")
         return line
-
-
-"""
-The following functions originate from 
-https://arccoder.medium.com/process-the-output-of-cv2-houghlines-f43c7546deae
-"""
-
-
-def line_end_points_on_image(rho: float, theta: float, image_shape: tuple):
-    """
-    Returns end points of the line on the end of the image
-    Args:
-        rho: input line rho
-        theta: input line theta
-        image_shape: shape of the image
-
-    Returns:
-        list: [(x1, y1), (x2, y2)]
-    """
-    m, b = polar2cartesian(rho, theta, True)
-
-    end_pts = []
-
-    if not np.isclose(m, 0.0):
-        x = int(0)
-        y = int(solve4y(x, m, b))
-        if is_point_within_image(x, y, image_shape):
-            end_pts.append((x, y))
-            x = int(image_shape[1] - 1)
-            y = int(solve4y(x, m, b))
-            if is_point_within_image(x, y, image_shape):
-                end_pts.append((x, y))
-
-    if m is not np.nan:
-        y = int(0)
-        x = int(solve4x(y, m, b))
-        if is_point_within_image(x, y, image_shape):
-            end_pts.append((x, y))
-            y = int(image_shape[0] - 1)
-            x = int(solve4x(y, m, b))
-            if is_point_within_image(x, y, image_shape):
-                end_pts.append((x, y))
-
-    return end_pts
-
-
-def polar2cartesian(rho: float, theta_rad: float, rotate90: bool = False):
-    """
-    Converts line equation from polar to cartesian coordinates
-
-    Args:
-        rho: input line rho
-        theta_rad: input line theta
-        rotate90: output line perpendicular to the input line
-
-    Returns:
-        m: slope of the line
-           For horizontal line: m = 0
-           For vertical line: m = np.nan
-        b: intercept when x=0
-    """
-    x = np.cos(theta_rad) * rho
-    y = np.sin(theta_rad) * rho
-    m = np.nan
-    if not np.isclose(x, 0.0):
-        m = y / x
-    if rotate90:
-        if m is np.nan:
-            m = 0.0
-        elif np.isclose(m, 0.0):
-            m = np.nan
-        else:
-            m = -1.0 / m
-    b = 0.0
-    if m is not np.nan:
-        b = y - m * x
-
-    return m, b
-
-
-def solve4x(y: float, m: float, b: float):
-    """
-    From y = m * x + b
-         x = (y - b) / m
-    """
-    if np.isclose(m, 0.0):
-        return 0.0
-    if m is np.nan:
-        return b
-    return (y - b) / m
-
-
-def solve4y(x: float, m: float, b: float):
-    """
-    y = m * x + b
-    """
-    if m is np.nan:
-        return b
-
-    return m * x + b
-
-
-def is_point_within_image(x: int, y: int, image_shape: tuple):
-    """
-    Returns true is x and y are on the image
-    """
-    return 0 <= y < image_shape[0] and 0 <= x < image_shape[1]
 
 
 if __name__ == "__main__":
