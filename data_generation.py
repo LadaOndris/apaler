@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from data_types import Camera, CameraOrientation, ImageSize, Line, Position
-from geometry import is_point_within_image, rot_along_x_matrix, rot_along_z_matrix, translation_matrix
+from geometry import is_point_within_image, rot_along_x_matrix, rot_along_z_matrix, translation_matrix, get_distance
 from rasterization import rasterize_line_3d
 
 
@@ -14,8 +14,8 @@ def get_cameras():
     # Lens: Kowa LM50-IR-F
     # Focal length: 50 mm?
     pixel_size = 3.45 * 1e-6
-    focal_length = 20 * 1e-3
-    elevation = -10
+    focal_length = 50 * 1e-3
+    elevation = 8
     cam1 = Camera(Position(2000, 0, 500),
                   ImageSize(6480, 4860),
                   CameraOrientation(90 - 75.07, elevation),
@@ -128,7 +128,7 @@ def project_and_display(cam: Camera, line: Line, show: bool, save: str = None):
 
 if __name__ == "__main__":
     cam1, cam2 = get_cameras()
-    line = Line(Position(2800, 6600, 500), Position(-1000, 9000, 10000))  # Line at an angle
+    line = Line(Position(2800, 6600, 500), Position(2400, 8400, 10000))  # Line at an angle
     # line = Line(Position(2800, 6600, 500), Position(2800, 6600, 10000))  # Vertical line
     # line = Line(Position(1600, 3200, 500), Position(1600, 3200, 10000))  # Vertical line a bit closer
     # line = Line(Position(0, 3000, -2500), Position(3000, 3000, -2500)) # Horizontal line
@@ -137,5 +137,13 @@ if __name__ == "__main__":
     # line = Line(Position(4000, 11000, 500), Position(4000, 7000, 10000))
     # line = Line(Position(2000, 3000, 500), Position(1000, 4000, 10000))
     # line = Line(Position(3000, 6000, 500), Position(1000, 6000, 500))
+
+    cams_distance = get_distance(cam1.position.to_array(), cam2.position.to_array())
+    line_cam1_distance = get_distance(cam1.position.to_array(), line.pos1.to_array())
+    line_cam2_distance = get_distance(cam2.position.to_array(), line.pos1.to_array())
+    print(F"Distance between cameras: {cams_distance}")
+    print(F"Distance the laser's origin and cam1: {line_cam1_distance}")
+    print(F"Distance the laser's origin and cam2: {line_cam2_distance}")
+
     project_and_display(cam1, line, show=True, save='./data/line_0_0.png')
     project_and_display(cam2, line, show=True, save='./data/line_0_1.png')
