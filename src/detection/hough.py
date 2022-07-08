@@ -3,11 +3,11 @@ from typing import List
 import cv2
 import numpy as np
 
-from data_generation import get_cameras
-from data_types import CandidatePlane, ImageCameraPair
-from detection.base import LineDetector
-from geometry import line_end_points_on_image
-from vectors import plane_from_image_points
+from src.localization.data_generation import get_cameras
+from src.localization.data_types import CandidatePlane, ImageCameraPair
+from src.detection.base import LineDetector
+from src.localization.geometry import line_end_points_on_image
+from src.localization.vectors import plane_from_image_points
 
 
 class HoughLineDetector(LineDetector):

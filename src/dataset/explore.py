@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from geometry import line_end_points_on_image
+from src.localization.geometry import line_end_points_on_image
 
 
 class BoundingBox:

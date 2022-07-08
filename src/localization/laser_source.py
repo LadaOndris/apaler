@@ -5,8 +5,8 @@ import numpy as np
 
 from data_generation import get_cameras
 from data_types import CandidatePlane, ImageCameraPair, Line, Position
-from detection.base import LineDetector
-from detection.hough import HoughLineDetector
+from src.detection.base import LineDetector
+from src.detection.hough import HoughLineDetector
 from geometry import line_plane_intersection, plane_intersect
 
 
@@ -85,10 +85,10 @@ class LaserSourceDeterminator:
 def load_images():
     kernel = np.ones((15, 15), np.uint8)
 
-    image1 = cv2.imread('./dataset/synthetic/line_0_0.png')
+    image1 = cv2.imread('../../dataset/synthetic/line_0_0.png')
     image1 = cv2.erode(image1, kernel)
 
-    image2 = cv2.imread('./dataset/synthetic/line_0_1.png')
+    image2 = cv2.imread('../../dataset/synthetic/line_0_1.png')
     image2 = cv2.erode(image2, kernel)
     return image1, image2
 

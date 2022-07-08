@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from data_types import CandidatePlane
+from src.localization.data_types import CandidatePlane
 
 
 class LineDetector(ABC):
