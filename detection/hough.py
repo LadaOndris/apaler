@@ -53,7 +53,7 @@ class HoughLineDetector(LineDetector):
 if __name__ == "__main__":
     cam1, cam2 = get_cameras()
     detector = HoughLineDetector()
-    image = cv2.imread('./data/line_0_0.png')
+    image = cv2.imread('./dataset/synthetic/line_0_0.png')
     kernel = np.ones((15, 15), np.uint8)
     image = cv2.erode(image, kernel)
     detector.get_candidates(ImageCameraPair(image, cam1))

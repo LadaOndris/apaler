@@ -168,7 +168,7 @@ def fit():
 
 
 def fit_image():
-    img = cv2.imread('dataset/images/DSC_2749.JPG')
+    img = cv2.imread('dataset/fit/DSC_2749.JPG')
     green = img[..., 1]
     green[green > 20] = 0
     green_gauss = gaussian(green, 16, 10)

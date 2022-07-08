@@ -145,5 +145,5 @@ if __name__ == "__main__":
     print(F"Distance the laser's origin and cam1: {line_cam1_distance}")
     print(F"Distance the laser's origin and cam2: {line_cam2_distance}")
 
-    project_and_display(cam1, line, show=True, save='./data/line_0_0.png')
-    project_and_display(cam2, line, show=True, save='./data/line_0_1.png')
+    project_and_display(cam1, line, show=True, save='./dataset/synthetic/line_0_0.png')
+    project_and_display(cam2, line, show=True, save='./dataset/synthetic/line_0_1.png')
