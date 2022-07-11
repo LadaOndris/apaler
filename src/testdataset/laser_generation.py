@@ -35,9 +35,9 @@ class LaserLineSetting:
         return length
 
     def to_underscore_string(self) -> str:
-        angle_degs = self.angle * 180 / np.pi
+        angle_degs = int(self.angle * 180 / np.pi)
         length = self._dissipation_to_length()
-        return f'w{self.width}_a{angle_degs}_l{length}'
+        return f'w{self.width}_a{angle_degs}_l{length}_x{self.source[0]}_y{self.source[1]}'
 
 
 class RealisticLaserGenerator:
