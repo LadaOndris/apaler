@@ -9,14 +9,35 @@ import numpy as np
 
 class LaserLineSetting:
 
-    def __init__(self, source: Tuple, target: Tuple, width: int, pixel_dissipation_factor: float):
+    def __init__(self, source: Tuple, angle_rads: float, width: int, pixel_dissipation_factor: float,
+                 image_size: Tuple[int, int]):
         self.source = source
-        self.target = target
+        self.angle = angle_rads
         self.width = width
         self.pixel_dissipation_factor = pixel_dissipation_factor
+        self.image_size = image_size
+        self.target = self._angle_to_target_point()
+
+    def _angle_to_target_point(self) -> Tuple:
+        length = self._dissipation_to_length()
+        x = length * math.cos(self.angle)
+        y = length * math.sin(self.angle)
+
+        target_x = self.source[0] + x
+        target_y = self.source[1] + y
+
+        target_x = np.clip(target_x, 0, self.image_size[0] - 16).astype(int)
+        target_y = np.clip(target_y, 0, self.image_size[1] - 16).astype(int)
+        return target_x, target_y
+
+    def _dissipation_to_length(self) -> int:
+        length = int(1 / self.pixel_dissipation_factor)
+        return length
 
     def to_underscore_string(self) -> str:
-        ...
+        angle_degs = self.angle * 180 / np.pi
+        length = self._dissipation_to_length()
+        return f'w{self.width}_a{angle_degs}_l{length}'
 
 
 class RealisticLaserGenerator:
@@ -81,7 +102,7 @@ class RealisticLaserGenerator:
             if 2 * e2 >= -dx:
                 e2 += dy
                 y2 = y0
-                while e2 < ed * wd and (y1 != y2 or dx > dy):
+                while (e2 < ed * wd) and (y1 != y2 or dx > dy):
                     y2 += sy
                     image[y2, x0] = self._get_new_pixel_value(image[y2, x0],
                                                               dist_from_middle=dist_from_line2((x0, y2), source,
@@ -96,7 +117,7 @@ class RealisticLaserGenerator:
                 x0 += sx
             if 2 * e2 <= dy:
                 e2 = dx - e2
-                while e2 < ed * wd and (x1 != x2 or dx < dy):
+                while (e2 < ed * wd) and (x1 != x2 or dx < dy):
                     x2 += sx
                     image[y0, x2] = self._get_new_pixel_value(image[y0, x2],
                                                               dist_from_middle=dist_from_line2((x2, y0), source,
@@ -115,7 +136,11 @@ class RealisticLaserGenerator:
         Adds an extra intensity to the current pixel, simulating a single pixel of a laser line.
         """
         extra_intensity = self._get_extra_intensity(dist_from_middle, dist_from_source)
-        return self._add_value_with_saturation(current_pixel_value, extra_intensity)
+        previous_green = current_pixel_value[1]
+        new_green = self._add_value_with_saturation(previous_green, extra_intensity)
+        new_pixel = current_pixel_value.copy()
+        new_pixel[1] = new_green
+        return new_pixel
 
     def _add_value_with_saturation(self, base, value, saturates_at=255):
         """
@@ -183,11 +208,11 @@ def dist_from_line2(point, line_point1, line_point2):
 
 
 if __name__ == "__main__":
-    image = np.zeros([400, 800], dtype=np.uint8)
-    setting = LaserLineSetting(source=(100, 200), target=(200, 0), width=5,
-                               pixel_dissipation_factor=0.005)
+    image = np.zeros([3000, 4096, 3], dtype=np.uint8)
+    setting = LaserLineSetting(source=(3302, 1161), width=10, angle_rads=2.652900463031381,
+                               pixel_dissipation_factor=0.0033783783783783786, image_size=(4096, 3000))
     generator = RealisticLaserGenerator()
-    painting = generator.draw_laser(image, setting, base_intensity=64)
+    painting = generator.draw_laser(image, setting, base_intensity=128)
 
     cv.imwrite('line.png', painting)
 
