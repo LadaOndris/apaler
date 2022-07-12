@@ -1,5 +1,6 @@
 import math
 import random
+import re
 from typing import Tuple
 
 import cv2 as cv
@@ -37,7 +38,28 @@ class LaserLineSetting:
     def to_underscore_string(self) -> str:
         angle_degs = int(self.angle * 180 / np.pi)
         length = self._dissipation_to_length()
-        return f'w{self.width}_a{angle_degs}_l{length}_x{self.source[0]}_y{self.source[1]}'
+        return f'w{self.width}_a{angle_degs}_l{length}_x{self.source[0]}_y{self.source[1]}' \
+               f'_{self.image_size[0]}_{self.image_size[1]}'
+
+    @classmethod
+    def from_underscore_string(cls, string):
+        pattern_text = r'w(?P<width>\d+)_a(?P<angle>(-\d+|\d+))_l(?P<length>\d+)_x(?P<x>\d+)_y(?P<y>\d+)' \
+                       r'_(?P<imgwidth>\d+)_(?P<imgheight>\d+)'
+        pattern = re.compile(pattern_text)
+        match = pattern.match(string)
+        if match is None:
+            return None
+        width = int(match.group('width'))
+        angle_degs = int(match.group('angle'))
+        length = int(match.group('length'))
+        source = (int(match.group('x')), int(match.group('y')))
+        image_width = int(match.group('imgwidth'))
+        image_height = int(match.group('imgheight'))
+        img_size = (image_width, image_height)
+        pixel_dissipation_factor = 1 / length
+        angle_rads = angle_degs / 180 * np.pi
+        setting = LaserLineSetting(source, angle_rads, width, pixel_dissipation_factor, img_size)
+        return setting
 
 
 class RealisticLaserGenerator:
