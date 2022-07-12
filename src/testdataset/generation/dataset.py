@@ -5,7 +5,7 @@ from typing import List
 import cv2 as cv
 import numpy as np
 
-from laser_generation import LaserLineSetting, RealisticLaserGenerator
+from laser import LaserLineSetting, RealisticLaserGenerator
 
 
 class SyntheticLaserDatasetGenerator:
@@ -14,7 +14,12 @@ class SyntheticLaserDatasetGenerator:
         self.directory = dataset_directory
         self.laser_generator = RealisticLaserGenerator()
 
-    def generate_dataset(self, background_images: List[str], target_intensities: List[int]):
+    def generate_dataset(self, background_images: List[str], target_intensities: List[int]) -> None:
+        """
+        Creates a new dataset from the given images and intensities of the laser.
+        :param background_images: Images into which lasers are drawn.
+        :param target_intensities: A value in the [0, 255] range for 8-bit pixels.
+        """
         os.makedirs(self.directory, exist_ok=True)
         # Generate source image pixels and angles
         # (will be applied to each background image and intesitysetting)
@@ -43,6 +48,11 @@ class SyntheticLaserDatasetGenerator:
             cv.imwrite(save_path, image_with_laser)
 
     def _generate_laser_line_settings(self) -> List[LaserLineSetting]:
+        """
+        Generates laser line settings for the dataset that is being created.
+
+        Determines position of the laser, its angle, length, and width.
+        """
         num_settings = 5
         img_width = 4096
         img_height = 3000
