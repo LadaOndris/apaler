@@ -226,6 +226,8 @@ def dist_from_line2(point, line_point1, line_point2):
     d = math.pow(line_point2[1] - line_point1[1], 2)
     denominator = math.sqrt(c + d)
 
+    if denominator == 0:
+        return np.inf
     return numerator / denominator
 
 

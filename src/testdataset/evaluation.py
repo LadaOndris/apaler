@@ -75,6 +75,8 @@ class Evaluator:
     def _line_angle(self, point1, point2):
         dx = point2[0] - point1[0]
         dy = point2[1] - point1[1]
+        if dx == 0:
+            return np.inf
         angle_rads = math.atan(dy / dx)
         return angle_rads
 
@@ -91,11 +93,22 @@ class Evaluator:
             return angle_rads
 
 
-def detect_using_rotation(file_path: str) -> Tuple:
-    return [0, 0], [100, 100]
+def get_detection_algorithm(executable_path: str) -> Callable[[str], Tuple]:
+    def detect_using_rotation(file_path: str) -> Tuple:
+        import subprocess
+        params = f'{executable_path } --image {file_path} --filterSize 20 --slopeThreshold 0.1 --minPixelsThreshold 200'
+        proc = subprocess.Popen(params, shell=True, stdout=subprocess.PIPE)
+        proc.wait()
+        line = proc.stdout.readline().decode('utf-8')
+        string_numbers = line.split(',')
+        int_numbers = [int(number) for number in string_numbers]
+        return int_numbers[:2], int_numbers[2:]
+
+    return detect_using_rotation
 
 
 if __name__ == "__main__":
+    detection_algorithm = get_detection_algorithm('../rotlinedet-gpu/cmake-build-debug/src/rotlinedet_run')
     evaluator = Evaluator()
     dataset = SyntheticLaserDataset('./dataset/testdataset')
-    evaluator.evaluate(dataset, detect_using_rotation)
+    evaluator.evaluate(dataset, detection_algorithm)
