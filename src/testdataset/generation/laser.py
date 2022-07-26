@@ -7,58 +7,47 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 import numpy as np
 
+from src.testdataset.utils import line_angle
+
 
 class LaserLineSetting:
 
-    def __init__(self, source: Tuple, angle_rads: float, width: int, pixel_dissipation_factor: float,
+    def __init__(self, source: Tuple, target: Tuple, width: int, pixel_dissipation_factor: float,
                  image_size: Tuple[int, int]):
         self.source = source
-        self.angle = angle_rads
+        self.target = target
         self.width = width
         self.pixel_dissipation_factor = pixel_dissipation_factor
         self.image_size = image_size
-        self.target = self._angle_to_target_point()
-
-    def _angle_to_target_point(self) -> Tuple:
-        length = self._dissipation_to_length()
-        x = length * math.cos(self.angle)
-        y = length * math.sin(self.angle)
-
-        target_x = self.source[0] + x
-        target_y = self.source[1] + y
-
-        target_x = np.clip(target_x, 0, self.image_size[0] - 16).astype(int)
-        target_y = np.clip(target_y, 0, self.image_size[1] - 16).astype(int)
-        return target_x, target_y
 
     def _dissipation_to_length(self) -> int:
         length = int(1 / self.pixel_dissipation_factor)
         return length
 
     def to_underscore_string(self) -> str:
-        angle_degs = int(self.angle * 180 / np.pi)
         length = self._dissipation_to_length()
-        return f'w{self.width}_a{angle_degs}_l{length}_x{self.source[0]}_y{self.source[1]}' \
+        return f'w{self.width}_l{length}_x1{self.source[0]}_y1{self.source[1]}' \
+               f'_x2{self.target[0]}_y2{self.target[1]}' \
                f'_{self.image_size[0]}_{self.image_size[1]}'
 
     @classmethod
     def from_underscore_string(cls, string):
-        pattern_text = r'w(?P<width>\d+)_a(?P<angle>(-\d+|\d+))_l(?P<length>\d+)_x(?P<x>\d+)_y(?P<y>\d+)' \
+        pattern_text = r'w(?P<width>\d+)_l(?P<length>\d+)_x1(?P<x1>\d+)_y1(?P<y1>\d+)' \
+                       r'_x2(?P<x2>\d+)_y2(?P<y2>\d+)' \
                        r'_(?P<imgwidth>\d+)_(?P<imgheight>\d+)'
         pattern = re.compile(pattern_text)
         match = pattern.match(string)
         if match is None:
             return None
         width = int(match.group('width'))
-        angle_degs = int(match.group('angle'))
         length = int(match.group('length'))
-        source = (int(match.group('x')), int(match.group('y')))
+        source = (int(match.group('x1')), int(match.group('y1')))
+        target = (int(match.group('x2')), int(match.group('y2')))
         image_width = int(match.group('imgwidth'))
         image_height = int(match.group('imgheight'))
         img_size = (image_width, image_height)
         pixel_dissipation_factor = 1 / length
-        angle_rads = angle_degs / 180 * np.pi
-        setting = LaserLineSetting(source, angle_rads, width, pixel_dissipation_factor, img_size)
+        setting = LaserLineSetting(source, target, width, pixel_dissipation_factor, img_size)
         return setting
 
 

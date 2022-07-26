@@ -2,13 +2,11 @@
 # and starts an abstract method, which runs the detection
 # algorithm and compares the given results with the expected results.
 
-import math
 from typing import Callable, Iterable, Tuple
-
-import numpy as np
 
 from src.testdataset.generation.laser import dist_from_line2
 from src.testdataset.loading import SyntheticLaserDataset, SyntheticLaserDatasetRecord
+from src.testdataset.utils import angle_to_positive, positive_line_angle
 
 
 class Evaluator:
@@ -43,8 +41,8 @@ class Evaluator:
             print(f"Evaluating {record.file_path}...")
 
             # Checks the angle of the line
-            positive_angle_rads = self._positive_line_angle(point1, point2)
-            expected_positive_angle_rads = self._angle_to_positive(record.setting.angle)
+            positive_angle_rads = positive_line_angle(point1, point2)
+            expected_positive_angle_rads = positive_line_angle(record.setting.source, record.setting.target)
             angle_diff = abs(positive_angle_rads - expected_positive_angle_rads)
             angle_checks = angle_diff < angle_epsilon
             if not angle_checks:
@@ -67,36 +65,12 @@ class Evaluator:
         print(f"Failed: \t{self.failed_count}")
         print("====================================\n")
 
-    def _positive_line_angle(self, point1, point2):
-        angle_rads = self._line_angle(point1, point2)
-        positive_angle_rads = self._angle_to_positive(angle_rads)
-        return positive_angle_rads
 
-    def _line_angle(self, point1, point2):
-        dx = point2[0] - point1[0]
-        dy = point2[1] - point1[1]
-        if dx == 0:
-            return np.inf
-        angle_rads = math.atan(dy / dx)
-        return angle_rads
-
-    def _angle_to_positive(self, angle_rads):
-        """
-        Converts negative angles to positive.
-        Such as the angle of -45° is the same as 135°.
-        The difference is only in the direction of the line, which
-        in this use case is irrelevant.
-        """
-        if angle_rads < 0:
-            return np.pi + angle_rads
-        else:
-            return angle_rads
-
-
-def get_detection_algorithm(executable_path: str) -> Callable[[str], Tuple]:
+def get_detection_algorithm(executable_path: str, pixelCountFilePath: str) -> Callable[[str], Tuple]:
     def detect_using_rotation(file_path: str) -> Tuple:
         import subprocess
-        params = f'{executable_path } --image {file_path} --filterSize 20 --slopeThreshold 0.1 --minPixelsThreshold 200'
+        params = f'{executable_path } --image {file_path} --filterSize 30 --slopeThreshold 0.1 --minPixelsThreshold 200 ' \
+                 f'--pixelCountFile {pixelCountFilePath}'
         proc = subprocess.Popen(params, shell=True, stdout=subprocess.PIPE)
         proc.wait()
         line = proc.stdout.readline().decode('utf-8')
@@ -108,7 +82,8 @@ def get_detection_algorithm(executable_path: str) -> Callable[[str], Tuple]:
 
 
 if __name__ == "__main__":
-    detection_algorithm = get_detection_algorithm('../rotlinedet-gpu/cmake-build-debug/src/rotlinedet_run')
+    detection_algorithm = get_detection_algorithm('../rotlinedet-gpu/cmake-build-debug/src/rotlinedet_run',
+                                                  '../rotlinedet-gpu/src/scripts/columnPixelCounts.dat')
     evaluator = Evaluator()
     dataset = SyntheticLaserDataset('./dataset/testdataset')
     evaluator.evaluate(dataset, detection_algorithm)

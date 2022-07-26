@@ -79,6 +79,8 @@ class SyntheticLaserDatasetGenerator:
                                                self.num_settings)
         random_angles_rads = random_angles_degs / 180 * np.pi
 
+        targets = self._angles_to_targets(sources, random_angles_rads)
+
         # Determine length of the laser using dissipation factor and randomness
         random_laser_lengths = np.random.randint(self.allowed_laser_length[0], self.allowed_laser_length[1],
                                                  self.num_settings)
@@ -90,10 +92,39 @@ class SyntheticLaserDatasetGenerator:
 
         settings = []
         for i in range(self.num_settings):
-            setting = LaserLineSetting(sources[i], random_angles_rads[i],
-                                       laser_widths[i], pixel_dissipation_factors[i], (self.img_width, self.img_height))
+            setting = LaserLineSetting(sources[i], targets[i],
+                                       laser_widths[i], pixel_dissipation_factors[i],
+                                       (self.img_width, self.img_height))
             settings.append(setting)
         return settings
+
+    def _angles_to_targets(self, sources: np.ndarray, angles_rads: np.ndarray) -> np.ndarray:
+        # Determine the target point
+        targets = self._angles_to_target_points(sources, angles_rads)
+        targets = self._clip_targets(targets)
+        return targets
+
+    def _angles_to_target_points(self, sources: np.ndarray, angles_rads: np.ndarray) -> np.ndarray:
+        length = 1000  # just an arbitrary factor
+        x = length * np.cos(angles_rads)
+        y = length * np.sin(angles_rads)
+        x = x.astype(int)
+        y = y.astype(int)
+
+        targets_x = sources[:, 0] + x
+        targets_y = sources[:, 1] + y
+        return np.stack([targets_x, targets_y], axis=-1)
+
+    def _clip_targets(self, targets: np.ndarray) -> np.ndarray:
+        """
+        Clips the target points to lie in the image.
+        Subtracts 16 pixels from the bottom of the image, so that
+        the laser origin does not lie on the image boundary.
+        :param targets: An ndarray of [x,y] points.
+        """
+        targets[:, 0] = np.clip(targets[:, 0], 0, self.img_width - 16).astype(int)
+        targets[:, 1] = np.clip(targets[:, 1], 0, self.img_height - 16).astype(int)
+        return targets
 
 
 if __name__ == "__main__":
