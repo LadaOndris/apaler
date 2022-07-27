@@ -14,11 +14,11 @@ class SyntheticLaserDatasetGenerator:
         self.directory = dataset_directory
         self.laser_generator = RealisticLaserGenerator()
 
-        self.num_settings = 5
+        self.num_settings = 10
         self.img_width = 1920
         self.img_height = 1080
         self.allowed_angle_range = [-160, -20]
-        self.allowed_laser_length = [100, 5077]
+        self.allowed_laser_length = [100, 2204]
 
     def generate_dataset(self, background_images: List[str], target_intensities: List[int]) -> None:
         """
@@ -34,10 +34,10 @@ class SyntheticLaserDatasetGenerator:
         # Iterate over all intesities.
         for intensity in target_intensities:
             subdir = self._prepare_subdir_for_intensity(intensity)
-            for image_path in background_images:
+            for img_index, image_path in enumerate(background_images):
                 image = cv.imread(image_path)
                 if self._check_image_shape(image):
-                    self._generate_and_save_for_all_settings(image, line_settings, intensity, subdir)
+                    self._generate_and_save_for_all_settings(image, line_settings, intensity, subdir, img_index)
                 else:
                     print(f"Image '{image_path}' is of different size than expected "
                           f"(expected: {self._get_expected_shape()}, actual: {image.shape}).")
@@ -56,11 +56,11 @@ class SyntheticLaserDatasetGenerator:
 
     def _generate_and_save_for_all_settings(self, image: np.ndarray,
                                             line_settings: List[LaserLineSetting],
-                                            intensity: int, save_dir: str):
+                                            intensity: int, save_dir: str, index: int):
         for setting in line_settings:
             painting = image.copy()
             image_with_laser = self.laser_generator.draw_laser(painting, setting, intensity)
-            save_path = os.path.join(save_dir, f'{setting.to_underscore_string()}.png')
+            save_path = os.path.join(save_dir, f'{setting.to_underscore_string()}_{index}.png')
             cv.imwrite(save_path, image_with_laser)
 
     def _generate_laser_line_settings(self) -> List[LaserLineSetting]:
