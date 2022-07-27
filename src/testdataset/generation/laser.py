@@ -20,12 +20,12 @@ class LaserLineSetting:
         self.pixel_dissipation_factor = pixel_dissipation_factor
         self.image_size = image_size
 
-    def _dissipation_to_length(self) -> int:
+    def get_length(self) -> int:
         length = int(1 / self.pixel_dissipation_factor)
         return length
 
     def to_underscore_string(self) -> str:
-        length = self._dissipation_to_length()
+        length = self.get_length()
         return f'w{self.width}_l{length}_x1{self.source[0]}_y1{self.source[1]}' \
                f'_x2{self.target[0]}_y2{self.target[1]}' \
                f'_{self.image_size[0]}_{self.image_size[1]}'
@@ -34,7 +34,7 @@ class LaserLineSetting:
     def from_underscore_string(cls, string):
         pattern_text = r'w(?P<width>\d+)_l(?P<length>\d+)_x1(?P<x1>\d+)_y1(?P<y1>\d+)' \
                        r'_x2(?P<x2>\d+)_y2(?P<y2>\d+)' \
-                       r'_(?P<imgwidth>\d+)_(?P<imgheight>\d+)'
+                       r'_(?P<imgwidth>\d+)_(?P<imgheight>\d+)_*'
         pattern = re.compile(pattern_text)
         match = pattern.match(string)
         if match is None:

@@ -11,6 +11,12 @@ class SyntheticLaserDatasetRecord:
         self.file_path = file_path
         self.setting = setting
 
+    def get_intensity(self):
+        path = Path(self.file_path)
+        directory = path.parts[-2]
+        intensity = int(directory[1:])
+        return intensity
+
 
 class SyntheticLaserDataset:
     """
