@@ -26,15 +26,15 @@ using images located in `dataset/testdataset/images/` and specified settings.
 The `src/testdataset/evaluation.py` script evaluates the given detection
 algorithm on all generated images in `dataset/testdataset/i*`. 
 The number after the character `i` specifies the intensity of 
-the laser by adding this value to pixels where the laser is present.
+the laser, meaning that this value was added to pixels where the laser is present.
 
 ## Localization
 
-All source files regarding localization are present in the `src/localization/` folder.
+All source files regarding laser origin localization are present in the `src/localization/` folder.
 
 For testing purposes, a `data_generation.py` script was created 
-to generate `synthetic` images with lasers.
+to generate `synthetic` images with lasers (black images with clearly visible lines).
 
 The localiation is perfomed by `laser_source.py`, which reads two images,
-finds lasers in the synthetic images using HoughTransform (for now) and 
+finds lasers in the synthetic images using HoughTransform (for now), and 
 determines the laser origin. 

@@ -63,7 +63,7 @@ class Evaluator:
 
     def evaluate(self, dataset: Iterable[SyntheticLaserDatasetRecord],
                  detect_strategy: Callable[[str], Tuple],
-                 angle_epsilon=0.0349, source_distance_epsilon=10) -> None:
+                 angle_epsilon=0.0349, source_distance_epsilon=10, verbose=True) -> None:
         """
         Evaluates a detection algorithm on the synthetic laser dataset by
         calling detection algorithm, which returns line represented by two points
@@ -81,22 +81,25 @@ class Evaluator:
         for record in dataset:
             # Detection algorithm returns a line represented by two points in the original image
             point1, point2 = detect_strategy(record.file_path)
-            print(f"Evaluating {record.file_path}...")
+            if verbose:
+                print(f"Evaluating {record.file_path}...")
 
             # Checks the angle of the line
             positive_angle_rads = positive_line_angle(point1, point2)
             expected_positive_angle_rads = positive_line_angle(record.setting.source, record.setting.target)
             angle_diff = abs(positive_angle_rads - expected_positive_angle_rads)
             angle_checks = angle_diff < angle_epsilon
-            if not angle_checks:
-                print(f"\tAngle difference is not within limits (allowed = {angle_epsilon}, actual = {angle_diff}).")
+            if verbose:
+                if not angle_checks:
+                    print(f"\tAngle difference is not within limits (allowed = {angle_epsilon}, actual = {angle_diff}).")
 
             # Checks that the true source lies on the line
             actual_dist = dist_from_line2(record.setting.source, point1, point2)
             max_allowed_dist = source_distance_epsilon
             source_dist_checks = actual_dist < max_allowed_dist
-            if not source_dist_checks:
-                print(f"\tSource distance is not within limits (allowed = {max_allowed_dist}, actual = {actual_dist}).")
+            if verbose:
+                if not source_dist_checks:
+                    print(f"\tSource distance is not within limits (allowed = {max_allowed_dist}, actual = {actual_dist}).")
 
             is_successful = angle_checks and source_dist_checks
             if is_successful:
@@ -104,11 +107,12 @@ class Evaluator:
             else:
                 self.failed_count += 1
             self.update_stats(record, is_successful)
-        print("\n====================================")
-        print("Finished evaluation.")
-        print(f"Succeeded: \t{self.success_count}")
-        print(f"Failed: \t{self.failed_count}")
-        print("====================================\n")
+        if verbose:
+            print("\n====================================")
+            print("Finished evaluation.")
+            print(f"Succeeded: \t{self.success_count}")
+            print(f"Failed: \t{self.failed_count}")
+            print("====================================\n")
 
 
 if __name__ == "__main__":
