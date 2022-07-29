@@ -4,6 +4,7 @@ Selects the parameters with the highest success rate on the testdataset.
 """
 
 import argparse
+import os
 
 import numpy as np
 
@@ -77,6 +78,12 @@ def parse_args():
     parser.add_argument('--pixel-counts-path', action='store', type=str,
                         default='../rotlinedet-gpu/src/scripts/columnPixelCounts.dat')
     args = parser.parse_args()
+
+    if not os.path.isfile(args.exe_path):
+        raise ValueError(f"The file {args.exe_path} doesn't exist.")
+
+    if not os.path.isfile(args.pixel_counts_path):
+        raise ValueError(f"The file {args.pixel_counts_path} doesn't exist.")
     return args
 
 
