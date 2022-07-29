@@ -3,7 +3,7 @@ This scripts runs evaluation for different parameters of the rotlinedet detectio
 Selects the parameters with the highest success rate on the testdataset.
 """
 import numpy as np
-import utils
+import src.testdataset.utils as utils
 
 from src.testdataset.algorithms.rotlinedet import get_detection_algorithm
 from src.testdataset.evaluation import Evaluator

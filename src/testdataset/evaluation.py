@@ -114,12 +114,3 @@ class Evaluator:
             print(f"Failed: \t{self.failed_count}")
             print("====================================\n")
 
-
-if __name__ == "__main__":
-    detection_algorithm = get_detection_algorithm('../rotlinedet-gpu/cmake-build-release/src/rotlinedet_run',
-                                                  '../rotlinedet-gpu/src/scripts/columnPixelCounts.dat',
-                                                  filterSize=30, slopeThreshold=0.1, minPixelsThreshold=200)
-    evaluator = Evaluator()
-    dataset = SyntheticLaserDataset('./dataset/testdataset')
-    evaluator.evaluate(dataset, detection_algorithm)
-    evaluator.print_stats()
