@@ -7,8 +7,6 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.testdataset.utils import line_angle
-
 
 class LaserLineSetting:
 
