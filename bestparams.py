@@ -24,22 +24,21 @@ class BestParamsSeeker:
         self.dataset = SyntheticLaserDataset('./dataset/testdataset')
 
     def find_best_params(self):
-        params = self._generate_params()
-        self._run_evaluation_for_each_config(params)
+        self._generate_params()
+        self._run_evaluation_for_each_config()
         self._select_and_print_best_params()
 
     def _generate_params(self):
-        self.filterSizes = np.array([10, 16, 20, 26, 30, 36, 40, 46, 50], dtype=float)
-        self.slopeThreshold = np.array([0.025, 0.05, 0.075, 0.1, 0.15, 0.2], dtype=float)
-        self.minPixelsThreshold = np.array([100, 200, 300, 400], dtype=float)
-        params = utils.cartesian([self.filterSizes, self.slopeThreshold, self.minPixelsThreshold])
-        return params
+        filter_sizes = np.array([10, 16, 20, 26, 30, 36, 40, 46, 50], dtype=float)
+        slope_threshold = np.array([0.025, 0.05, 0.075, 0.1, 0.15, 0.2], dtype=float)
+        min_pixels_threshold = np.array([100, 200, 300, 400], dtype=float)
+        self.params = utils.cartesian([filter_sizes, slope_threshold, min_pixels_threshold])
 
-    def _run_evaluation_for_each_config(self, params):
+    def _run_evaluation_for_each_config(self):
         self._reset_stats()
 
-        for param_idx in range(params.shape[0]):
-            param = params[param_idx]
+        for param_idx in range(self.params.shape[0]):
+            param = self.params[param_idx]
             self._evaluate_for_config(param)
             self._save_results_for_later()
             print(f"{param_idx}: {self.evaluator.success_count}")
@@ -61,11 +60,12 @@ class BestParamsSeeker:
     def _select_and_print_best_params(self):
         success_counts = np.array(self.success_counts)
         best_param_id = np.argmax(success_counts)
+        best_param = self.params[best_param_id]
 
         print("=================================================")
-        print(f"Best params: --filterSize {self.filterSizes[best_param_id]} "
-              f"--slopeThreshold {self.slopeThreshold[best_param_id]} "
-              f"--minPixelsThreshold {self.minPixelsThreshold[best_param_id]}")
+        print(f"Best params: --filterSize {best_param[0]} "
+              f"--slopeThreshold {best_param[1]} "
+              f"--minPixelsThreshold {best_param[2]}")
         self.evaluator.stats = self.stats[best_param_id]
         self.evaluator.print_stats()
         print("=================================================")
