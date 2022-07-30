@@ -87,6 +87,7 @@ def parse_args():
     return args
 
 
-args = parse_args()
-param_seeker = BestParamsSeeker(args.exe_path, args.pixel_counts_path)
-param_seeker.find_best_params()
+if __name__ == "__main__":
+    args = parse_args()
+    param_seeker = BestParamsSeeker(args.exe_path, args.pixel_counts_path)
+    param_seeker.find_best_params()
