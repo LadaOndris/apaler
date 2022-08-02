@@ -11,7 +11,7 @@ def parse_args():
     parser.add_argument('--exe-path', action='store', type=str,
                         default='../rotlinedet-gpu/cmake-build-release/src/rotlinedet_run')
     parser.add_argument('--pixel-counts-path', action='store', type=str,
-                        default='../rotlinedet-gpu/src/scripts/columnPixelCounts.dat')
+                        default='../rotlinedet-gpu/src/scripts/columnPixelCounts281.dat')
     args = parser.parse_args()
 
     if not os.path.isfile(args.exe_path):
@@ -24,7 +24,7 @@ def parse_args():
 
 args = parse_args()
 detection_algorithm = get_detection_algorithm(args.exe_path, args.pixel_counts_path,
-                                              filterSize=30, slopeThreshold=0.1, minPixelsThreshold=200)
+                                              filterSize=30, slopeThreshold=0.2, minPixelsThreshold=300, candidates=5)
 evaluator = Evaluator()
 dataset = SyntheticLaserDataset('./dataset/testdataset')
 evaluator.evaluate(dataset, detection_algorithm)

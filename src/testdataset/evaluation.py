@@ -4,9 +4,8 @@
 import math
 from typing import Callable, Dict, Iterable, Tuple
 
-from src.testdataset.algorithms.rotlinedet import get_detection_algorithm
 from src.testdataset.generation.laser import dist_from_line2
-from src.testdataset.loading import SyntheticLaserDataset, SyntheticLaserDatasetRecord
+from src.testdataset.loading import SyntheticLaserDatasetRecord
 from src.testdataset.utils import positive_line_angle
 
 
@@ -61,6 +60,30 @@ class Evaluator:
             print()
         print("====================================\n")
 
+    def _check_candidate_line(self, candidate: Tuple, record: SyntheticLaserDatasetRecord,
+                              angle_epsilon=0.0349, source_distance_epsilon=10, verbose=True) -> bool:
+        point1, point2 = candidate
+
+        # Checks the angle of the line
+        positive_angle_rads = positive_line_angle(point1, point2)
+        expected_positive_angle_rads = positive_line_angle(record.setting.source, record.setting.target)
+        angle_diff = abs(positive_angle_rads - expected_positive_angle_rads)
+        angle_checks = angle_diff < angle_epsilon
+        # if verbose:
+        #     if not angle_checks:
+        #         print(f"\tAngle difference is not within limits (allowed = {angle_epsilon}, actual = {angle_diff}).")
+
+        # Checks that the true source lies on the line
+        actual_dist = dist_from_line2(record.setting.source, point1, point2)
+        max_allowed_dist = source_distance_epsilon
+        source_dist_checks = actual_dist < max_allowed_dist
+        # if verbose:
+        #     if not source_dist_checks:
+        #         print(f"\tSource distance is not within limits (allowed = {max_allowed_dist}, actual = {actual_dist}).")
+
+        is_successful = angle_checks and source_dist_checks
+        return is_successful
+
     def evaluate(self, dataset: Iterable[SyntheticLaserDatasetRecord],
                  detect_strategy: Callable[[str], Tuple],
                  angle_epsilon=0.0349, source_distance_epsilon=10, verbose=True) -> None:
@@ -79,38 +102,31 @@ class Evaluator:
         self._reset_counts()
 
         for record in dataset:
-            # Detection algorithm returns a line represented by two points in the original image
-            point1, point2 = detect_strategy(record.file_path)
-            if verbose:
-                print(f"Evaluating {record.file_path}...")
+            # Detection algorithm returns several line candidates,
+            # each represented by two points in the original image
+            candidates = detect_strategy(record.file_path)
 
-            # Checks the angle of the line
-            positive_angle_rads = positive_line_angle(point1, point2)
-            expected_positive_angle_rads = positive_line_angle(record.setting.source, record.setting.target)
-            angle_diff = abs(positive_angle_rads - expected_positive_angle_rads)
-            angle_checks = angle_diff < angle_epsilon
             if verbose:
-                if not angle_checks:
-                    print(f"\tAngle difference is not within limits (allowed = {angle_epsilon}, actual = {angle_diff}).")
+                print(f"Evaluating {record.file_path}... ", end='')
 
-            # Checks that the true source lies on the line
-            actual_dist = dist_from_line2(record.setting.source, point1, point2)
-            max_allowed_dist = source_distance_epsilon
-            source_dist_checks = actual_dist < max_allowed_dist
+            checked_candidates = [
+                self._check_candidate_line(candidate, record, angle_epsilon, source_distance_epsilon, verbose)
+                for candidate in candidates]
+            is_successful = any(checked_candidates)
+
             if verbose:
-                if not source_dist_checks:
-                    print(f"\tSource distance is not within limits (allowed = {max_allowed_dist}, actual = {actual_dist}).")
+                message = ' succeeded' if is_successful else ' failed'
+                print(message)
 
-            is_successful = angle_checks and source_dist_checks
             if is_successful:
                 self.success_count += 1
             else:
                 self.failed_count += 1
             self.update_stats(record, is_successful)
+
         if verbose:
             print("\n====================================")
             print("Finished evaluation.")
             print(f"Succeeded: \t{self.success_count}")
             print(f"Failed: \t{self.failed_count}")
             print("====================================\n")
-
