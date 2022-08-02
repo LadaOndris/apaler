@@ -22,16 +22,19 @@ class Evaluator:
         self.success_count = 0
         self.stats = {'intensity': {},
                       'width': {},
-                      'length': {}}
+                      'length': {},
+                      'image': {}}
 
     def update_stats(self, record: SyntheticLaserDatasetRecord, successful: bool) -> None:
         intensity = record.get_intensity()
         width = record.setting.width
         length_bin = self._length_to_bin(record.setting.get_length(), record.setting.image_size)
+        image_number = record.setting.image_index
         val = 1 - successful  # Count only unsuccessful
         self._insert_or_update(self.stats['intensity'], intensity, val)
         self._insert_or_update(self.stats['width'], width, val)
         self._insert_or_update(self.stats['length'], length_bin, val)
+        self._insert_or_update(self.stats['image'], image_number, val)
 
     def _length_to_bin(self, length: int, image_size: Tuple, ) -> int:
         max_length = int(math.sqrt(image_size[0] ** 2 + image_size[1] ** 2))

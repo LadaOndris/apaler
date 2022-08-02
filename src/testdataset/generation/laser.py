@@ -11,12 +11,13 @@ import numpy as np
 class LaserLineSetting:
 
     def __init__(self, source: Tuple, target: Tuple, width: int, pixel_dissipation_factor: float,
-                 image_size: Tuple[int, int]):
+                 image_size: Tuple[int, int], image_index: int = -1):
         self.source = source
         self.target = target
         self.width = width
         self.pixel_dissipation_factor = pixel_dissipation_factor
         self.image_size = image_size
+        self.image_index = image_index
 
     def get_length(self) -> int:
         length = int(1 / self.pixel_dissipation_factor)
@@ -32,7 +33,7 @@ class LaserLineSetting:
     def from_underscore_string(cls, string):
         pattern_text = r'w(?P<width>\d+)_l(?P<length>\d+)_x1(?P<x1>\d+)_y1(?P<y1>\d+)' \
                        r'_x2(?P<x2>\d+)_y2(?P<y2>\d+)' \
-                       r'_(?P<imgwidth>\d+)_(?P<imgheight>\d+)_*'
+                       r'_(?P<imgwidth>\d+)_(?P<imgheight>\d+)_(?P<imageid>\d+)'
         pattern = re.compile(pattern_text)
         match = pattern.match(string)
         if match is None:
@@ -43,9 +44,10 @@ class LaserLineSetting:
         target = (int(match.group('x2')), int(match.group('y2')))
         image_width = int(match.group('imgwidth'))
         image_height = int(match.group('imgheight'))
+        image_index = int(match.group('imageid'))
         img_size = (image_width, image_height)
         pixel_dissipation_factor = 1 / length
-        setting = LaserLineSetting(source, target, width, pixel_dissipation_factor, img_size)
+        setting = LaserLineSetting(source, target, width, pixel_dissipation_factor, img_size, image_index)
         return setting
 
 
