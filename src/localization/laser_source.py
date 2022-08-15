@@ -85,10 +85,10 @@ class LaserSourceDeterminator:
 def load_images():
     kernel = np.ones((15, 15), np.uint8)
 
-    image1 = cv2.imread('../../dataset/synthetic/line_0_0.png')
+    image1 = cv2.imread('dataset/synthetic/line_0_0.png')
     image1 = cv2.erode(image1, kernel)
 
-    image2 = cv2.imread('../../dataset/synthetic/line_0_1.png')
+    image2 = cv2.imread('dataset/synthetic/line_0_1.png')
     image2 = cv2.erode(image2, kernel)
     return image1, image2
 

@@ -1,3 +1,11 @@
+"""
+Processes the result of bestparams.py script.
+Each line represents "{parameter combination id}:{# successful detections}".
+Prints the best parameter combination.
+
+This file might not be needed anymore since bestparams.py should print the best params.
+"""
+
 from bestparams import BestParamsSeeker
 
 raw_output = \
