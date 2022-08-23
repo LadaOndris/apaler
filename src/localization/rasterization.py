@@ -1,7 +1,7 @@
 import math
 from typing import List, Tuple
 
-from data_types import Position
+from src.localization.data_types import Position
 
 
 def rasterize_line_3d(pos1: Position, pos2: Position) -> List[Tuple[int, int, int]]:

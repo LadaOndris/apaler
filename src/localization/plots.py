@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from geometry import degs_to_rads
+from src.localization.geometry import degs_to_rads
 
 
 def plot_error_depending_on_surface_altitude_differences():

@@ -2,8 +2,8 @@ from typing import Tuple
 
 import numpy as np
 
-from data_generation import transform_camera_to_world_matrix
-from data_types import Camera, CandidatePlane, Line, Position
+from src.localization.data_generation import transform_camera_to_world_matrix
+from src.localization.data_types import Camera, CandidatePlane, Line, Position
 
 
 def plane_from_image_points(camera: Camera,

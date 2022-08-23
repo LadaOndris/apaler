@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from data_types import Camera, CameraOrientation, CandidatePlane, ImageSize, Line, Position
+from src.localization.data_types import Camera, CameraOrientation, CandidatePlane, ImageSize, Line, Position
 
 
 class TestCandidatePlane(TestCase):

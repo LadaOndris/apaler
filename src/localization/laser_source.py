@@ -3,11 +3,11 @@ from typing import List
 import cv2
 import numpy as np
 
-from data_generation import get_cameras
-from data_types import CandidatePlane, ImageCameraPair, Line, Position
+from src.localization.data_generation import get_cameras
+from src.localization.data_types import CandidatePlane, ImageCameraPair, Line, Position
 from src.detection.base import LineDetector
 from src.detection.hough import HoughLineDetector
-from geometry import line_plane_intersection, plane_intersect
+from src.localization.geometry import line_plane_intersection, plane_intersect
 
 
 class LaserSourceDeterminator:
@@ -16,6 +16,11 @@ class LaserSourceDeterminator:
         self.detector = detector
 
     def find_position(self, image_camera_pairs: List[ImageCameraPair]) -> Position:
+        """
+        The laser source position is found by intersecting planes created by finding
+        candidate lines in given images. Each image was taken by a camera with specific
+        parameters. The pair is represented as an ImageCameraPair.
+        """
         candidates_per_image: List[List[CandidatePlane]] = []
         for image_camera_pair in image_camera_pairs:
             candidates = self.detector.get_candidates(image_camera_pair)

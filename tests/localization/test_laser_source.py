@@ -2,8 +2,8 @@ from unittest import TestCase
 
 import numpy as np
 
-from data_types import Line, Position
-from laser_source import LaserSourceDeterminator
+from src.localization.data_types import Line, Position
+from src.localization.laser_source import LaserSourceDeterminator
 
 
 class TestLaserSourceDeterminator(TestCase):

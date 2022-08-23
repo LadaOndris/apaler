@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from geometry import line_plane_intersection
+from src.localization.geometry import line_plane_intersection
 
 
 class Test(TestCase):
